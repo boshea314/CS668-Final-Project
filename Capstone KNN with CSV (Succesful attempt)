@@ -1,0 +1,90 @@
+
+import pandas as pd
+import sklearn
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.model_selection import cross_val_score
+
+#Import the data
+data = pd.read_csv('C:/Users/Brian/Documents/data.txt')
+
+#I found that the data had some empty cells in artist familiarity
+#this replaces those with the median artist familiarity
+data["artist_familiarity"] = data["artist_familiarity"].fillna(data["artist_familiarity"].median())
+
+
+#A function just to make testing each KNN easier
+def model(data):
+    train = data
+    #train.info()
+    
+    bbhot = train["bbhot"]
+
+    
+    #Training data is everything but the billboard hot list
+    train1 = train.drop("bbhot", axis=1)
+
+    #100 neighbors was the best outcomes so far
+    knn = KNeighborsClassifier(n_neighbors = 100)
+
+    knn.fit(train1, bbhot)
+    
+    #Cross validation to test 
+    score = cross_val_score(knn, train1, bbhot, cv=10, scoring = "roc_auc")
+    #Take the mean of all 10 scores from cross val
+    mean = score.mean()
+    
+    #Convert the mean to a % and round to 2 decimal places
+    mean = mean * 100
+    format_mean = "{:.2f}".format(mean)
+
+    #print(score)
+    print("The average of the 10 cross validation accuracies are: ", format_mean, "%")
+
+
+#Creating different data checks to check on bbhot accuracy
+#Basically a guess and check to see what works best
+
+#Attempt1 is what aligns best with the data in Boyles papers. 
+#Billboard hot, familiarity, hottness, duration,fade in/out, loudness, mode, tempo, time sig
+attempt1= data[['bbhot','artist_familiarity', 'artist_hotttnesss', 'duration', 'end_of_fade_in', 'key', 'loudness', 'mode', 'start_of_fade_out', 'tempo', 'time_signature']]
+
+#Attempt 2 is similar, just removing the fade in and fade out that seem unnessecary 
+attempt2 = data[['bbhot','artist_familiarity', 'artist_hotttnesss', 'duration', 'key', 'loudness', 'mode', 'tempo', 'time_signature']]
+
+#Checking how the artist-centric variables apply
+attempt3 = data [['bbhot', 'artist_familiarity', 'artist_hotttnesss']]
+
+#Checking the more "Music theory-ish" variables
+attempt4 = data[['bbhot', 'key', 'mode', 'time_signature']]
+
+#Music theory-ish plus the duration
+attempt5 = data[['bbhot', 'duration', 'key', 'mode', 'time_signature']]
+
+#Some time based variables
+attempt6 = data[['bbhot', 'duration', 'end_of_fade_in', 'start_of_fade_out']]
+
+
+#Print the models
+print("Attempt 1:")
+model(attempt1)
+print()
+
+print("Attempt 2:")
+model(attempt2)
+print()
+
+print("Attempt 3:")
+model(attempt3)
+print()
+
+print("Attempt 4:")
+model(attempt4)
+print()
+
+print("Attempt 5:")
+model(attempt5)
+print()
+
+print("Attempt 6:")
+model(attempt6)
+print()
